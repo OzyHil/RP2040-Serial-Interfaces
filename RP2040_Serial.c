@@ -9,16 +9,18 @@ refs pio;                               // Referência do PIO
 uint32_t valorLed;                      // Valor do LED a ser enviado
 RGB color;                              // Cor do LED (RGB)
 double *drawing;                        // Desenho (sequência de LEDs acesos)
-volatile uint8_t count = 0;             // Contador do número mostrado
 static volatile uint32_t lastTimeA = 0; // Tempo de última interrupção do botão A
 static volatile uint32_t lastTimeB = 0; // Tempo de última interrupção do botão B
+ssd1306_t ssd;
 
 void SetInterruption(int pin);                          // Configura a interrupção para o botão
 void HandleInterruption(uint gpio, uint32_t events);    // Função que lida com a interrupção dos botões
 void UpdateLed(uint gpio, volatile uint32_t *lastTime); // Atualiza o LED com base no botão pressionado
 bool BlinkLedCallback(struct repeating_timer *t);       // Função de callback para fazer o LED piscar
 void LedInformationMessage(uint gpio, bool ledStatus);
-void UpdateDrawing(uint gpio, volatile uint32_t *lastTime, int number);
+void UpdateDrawing(int number);
+void HandleInput(char c);
+void UpdateDisplay(void (*ssd1306_draw_char)(ssd1306_t *, char, uint8_t, uint8_t), char c, uint8_t x, uint8_t y);
 
 int main()
 {
@@ -51,37 +53,26 @@ int main()
     gpio_set_function(I2C_SCL, GPIO_FUNC_I2C);                  // Set the GPIO pin function to I2C
     gpio_pull_up(I2C_SDA);                                      // Pull up the data line
     gpio_pull_up(I2C_SCL);                                      // Pull up the clock line
-    ssd1306_t ssd;                                              // Inicializa a estrutura do display
     ssd1306_init(&ssd, WIDTH, HEIGHT, false, ADRESS, I2C_PORT); // Inicializa o display
     ssd1306_config(&ssd);                                       // Configura o display
     ssd1306_send_data(&ssd);                                    // Envia os dados para o display
 
-    // Limpa o display. O display inicia com todos os pixels apagados.
-    ssd1306_fill(&ssd, false);
-    ssd1306_send_data(&ssd);
-
-    bool cor = true;
+    UpdateDisplay(ssd1306_draw_char, ' ', 0, 0);
 
     // Loop principal que mantém o sistema funcionando
     while (true)
     {
-        cor = !cor;
-        // Atualiza o conteúdo do display com animações
-        ssd1306_fill(&ssd, !cor);                           // Limpa o display
-        ssd1306_rect(&ssd, 3, 3, 122, 58, cor, !cor);       // Desenha um retângulo
-        ssd1306_draw_string(&ssd, "CEPEDI   TIC37", 8, 10); // Desenha uma string
-        ssd1306_draw_string(&ssd, "EMBARCATECH", 20, 30);   // Desenha uma string
-        ssd1306_draw_string(&ssd, "PROF WILTON", 15, 48);   // Desenha uma string
-        ssd1306_send_data(&ssd);                            // Atualiza o display
 
-        sleep_ms(1000);
-        // if (stdio_usb_connected())
-        // { // Certifica-se de que o USB está conectado
-        //     char c;
-        //     scanf("%c", &c);
+        if (stdio_usb_connected())
+        { // Certifica-se de que o USB está conectado
 
-        //     sleep_ms(40);
-        // }
+            char c;
+            scanf("%c", &c);
+
+            HandleInput(c);
+
+            sleep_ms(1000);
+        }
     }
 }
 
@@ -116,6 +107,7 @@ void UpdateLed(uint gpio, volatile uint32_t *lastTime)
     // Verifica se o tempo de debouncing passou (250ms)
     if (currentTime - *lastTime > 250000)
     {
+         reset_usb_boot(0, 0);
         *lastTime = currentTime;
         gpio_put(gpio, !gpio_get(gpio));
 
@@ -127,17 +119,24 @@ void UpdateLed(uint gpio, volatile uint32_t *lastTime)
 
 void LedInformationMessage(uint gpio, bool ledStatus)
 {
+
     if (gpio == GREEN_LED)
     {
         if (ledStatus)
         {
             printf("Led Verde ligado");
-            // O led verde foi ligado
+            UpdateDisplay(ssd1306_draw_char, ' ', 0, 0);
+
+            ssd1306_draw_string(&ssd, "LED VERDE ON", 8, 46); // Desenha uma string
+            ssd1306_send_data(&ssd);                          // Atualiza o display
         }
         else
         {
             printf("Led Verde desligado");
-            // O LED verde foi desligado
+            UpdateDisplay(ssd1306_draw_char, ' ', 0, 0);
+
+            ssd1306_draw_string(&ssd, "LED VERDE OFF", 8, 46); // Desenha uma string
+            ssd1306_send_data(&ssd);                           // Atualiza o display
         }
     }
     else if (gpio == BLUE_LED)
@@ -145,19 +144,53 @@ void LedInformationMessage(uint gpio, bool ledStatus)
         if (ledStatus)
         {
             printf("Led Azul ligado");
-            // O LED azul foi ligado
+            UpdateDisplay(ssd1306_draw_char, ' ', 0, 0);
+
+            ssd1306_draw_string(&ssd, "LED AZUL ON", 8, 46); // Desenha uma string
+            ssd1306_send_data(&ssd);                         // Atualiza o display
         }
         else
         {
             printf("Led Azul desligado");
-            // O LED azul foi desligado
+            UpdateDisplay(ssd1306_draw_char, ' ', 0, 0);
+
+            ssd1306_draw_string(&ssd, "LED AZUL OFf", 8, 46); // Desenha uma string
+            ssd1306_send_data(&ssd);                         // Atualiza o display
         }
     }
 }
 
-void UpdateDrawing(uint gpio, volatile uint32_t *lastTime, int number)
+void UpdateDrawing(int number)
 {
     // Atualiza o desenho de acordo com o valor
     drawing = Drawing(number);
     Draw(drawing, valorLed, pio, color);
+}
+
+void UpdateDisplay(void (*ssd1306_draw_char)(ssd1306_t *, char, uint8_t, uint8_t), char c, uint8_t x, uint8_t y)
+{
+    // Limpa o display. O display inicia com todos os pixels apagados.
+    ssd1306_fill(&ssd, false);
+    ssd1306_send_data(&ssd);
+
+    ssd1306_rect(&ssd, 3, 3, 122, 58, true, false);     // Desenha um retângulo
+    ssd1306_draw_string(&ssd, "CEPEDI   TIC37", 8, 10); // Desenha uma string
+    ssd1306_draw_char(&ssd, c, x, y);
+    ssd1306_send_data(&ssd); // Atualiza o display
+}
+
+#include <stdio.h>
+
+void HandleInput(char c)
+{
+    if (c >= '0' && c <= '9') // Verifica se é um número de 0 a 9
+    {
+        UpdateDisplay(ssd1306_draw_char, c, 8, 28);
+        int num = c - '0';
+        UpdateDrawing(num);
+    }else
+    {
+        UpdateDisplay(ssd1306_draw_char, c, 8, 28);
+    }
+    
 }
