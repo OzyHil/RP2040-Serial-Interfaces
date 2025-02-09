@@ -16,7 +16,6 @@ ssd1306_t ssd;
 void SetInterruption(int pin);                          // Configura a interrupção para o botão
 void HandleInterruption(uint gpio, uint32_t events);    // Função que lida com a interrupção dos botões
 void UpdateLed(uint gpio, volatile uint32_t *lastTime); // Atualiza o LED com base no botão pressionado
-bool BlinkLedCallback(struct repeating_timer *t);       // Função de callback para fazer o LED piscar
 void LedInformationMessage(uint gpio, bool ledStatus);
 void UpdateDrawing(int number);
 void HandleInput(char c);
