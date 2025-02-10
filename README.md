@@ -1,7 +1,7 @@
 # Projeto: Interfaces de Comunicação Serial com RP2040 - BitDogLab
 
 ## Vídeo de Demonstração
-Link do vídeo de demonstração: 
+Link do vídeo de demonstração: https://youtu.be/RPA3JRfhyio
 
 ## Descrição
 Este projeto foi desenvolvido por **Hilquias Rodrigues de Oliveira** com o objetivo de consolidar os conceitos sobre interfaces de comunicação serial no RP2040 utilizando a placa de desenvolvimento **BitDogLab**. A implementação inclui comunicação **UART e I2C**, controle de **LEDs WS2812 e RGB**, e interação por meio de **botões com tratamento de debounce e interrupção**.
