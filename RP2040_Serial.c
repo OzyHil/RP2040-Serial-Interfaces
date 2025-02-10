@@ -1,10 +1,9 @@
 #include "General.h"
 #include "Leds.h"
-#include "include/ssd1306.h"
-#include "include/font.h"
+#include "ssd1306.h"
+#include "Font.h"
 
 // Variáveis globais
-
 refs pio;                               // Referência do PIO
 uint32_t valorLed;                      // Valor do LED a ser enviado
 RGB color;                              // Cor do LED (RGB)
@@ -13,17 +12,18 @@ static volatile uint32_t lastTimeA = 0; // Tempo de última interrupção do bot
 static volatile uint32_t lastTimeB = 0; // Tempo de última interrupção do botão B
 ssd1306_t ssd;
 
+// Declaração das funções
 void SetInterruption(int pin);                          // Configura a interrupção para o botão
 void HandleInterruption(uint gpio, uint32_t events);    // Função que lida com a interrupção dos botões
 void UpdateLed(uint gpio, volatile uint32_t *lastTime); // Atualiza o LED com base no botão pressionado
 void LedInformationMessage(uint gpio, bool ledStatus);
 void UpdateDrawing(int number);
 void HandleInput(char c);
-void UpdateDisplay(void (*ssd1306_draw_char)(ssd1306_t *, char, uint8_t, uint8_t), char c, uint8_t x, uint8_t y);
+void UpdateDisplay(char c, uint8_t x, uint8_t y);
 
 int main()
 {
-    // Inicializa o PIO
+    // Inicializa o PIO (Peripheral Input/Output) para controlar a matriz de LEDs
     pio = InitPIO();
 
     // Configura botões A e B e atribui interrupções
@@ -32,11 +32,11 @@ int main()
     SetInput(BUTTON_B);
     SetInterruption(BUTTON_B);
 
-    // Configura os LED verde e azul
+    // Configura os LED verde e azul como saída
     SetOutput(GREEN_LED);
     SetOutput(BLUE_LED);
 
-    // Define a cor dos LEDs da matriz
+    // Define a cor inicial dos LEDs da matriz RGB
     color.red = 2;
     color.green = 4;
     color.blue = 8;
@@ -45,18 +45,22 @@ int main()
     drawing = Drawing(0);
     Draw(drawing, valorLed, pio, color);
 
-    // I2C Initialisation. Using it at 400Khz.
+    // Inicializa comunicação I2C com o display OLED a 400kHz
     i2c_init(I2C_PORT, 400 * 1000);
 
+    // Configuração dos pinos de SDA e SCL para comunicação I2C
     gpio_set_function(I2C_SDA, GPIO_FUNC_I2C);                  // Set the GPIO pin function to I2C
     gpio_set_function(I2C_SCL, GPIO_FUNC_I2C);                  // Set the GPIO pin function to I2C
     gpio_pull_up(I2C_SDA);                                      // Pull up the data line
     gpio_pull_up(I2C_SCL);                                      // Pull up the clock line
+
+    // Inicializa o display OLED
     ssd1306_init(&ssd, WIDTH, HEIGHT, false, ADRESS, I2C_PORT); // Inicializa o display
     ssd1306_config(&ssd);                                       // Configura o display
     ssd1306_send_data(&ssd);                                    // Envia os dados para o display
 
-    UpdateDisplay(ssd1306_draw_char, ' ', 0, 0);
+    // Atualiza o display para inciar com o desenho padrão
+    UpdateDisplay(' ', 0, 0);
 
     // Loop principal que mantém o sistema funcionando
     while (true)
@@ -66,11 +70,11 @@ int main()
         { // Certifica-se de que o USB está conectado
 
             char c;
-            scanf("%c", &c);
+            scanf("%c", &c);// Lê um caractere da entrada
 
-            HandleInput(c);
+            HandleInput(c);// Processa a entrada do usuário
 
-            sleep_ms(1000);
+            sleep_ms(500);// Aguarda 500ms para evitar leituras consecutivas rápidas
         }
     }
 }
@@ -106,13 +110,12 @@ void UpdateLed(uint gpio, volatile uint32_t *lastTime)
     // Verifica se o tempo de debouncing passou (250ms)
     if (currentTime - *lastTime > 250000)
     {
-         reset_usb_boot(0, 0);
-        *lastTime = currentTime;
-        gpio_put(gpio, !gpio_get(gpio));
+        *lastTime = currentTime; // Atualiza o tempo da última interrupção
+        gpio_put(gpio, !gpio_get(gpio)); // Obtém estado atual do LED
 
-        bool ledStatus = gpio_get(gpio);
+        bool ledStatus = gpio_get(gpio); // Obtém estado atual do LED
 
-        LedInformationMessage(gpio, ledStatus);
+        LedInformationMessage(gpio, ledStatus); // Exibe mensagem no display
     }
 }
 
@@ -124,7 +127,7 @@ void LedInformationMessage(uint gpio, bool ledStatus)
         if (ledStatus)
         {
             printf("Led Verde ligado");
-            UpdateDisplay(ssd1306_draw_char, ' ', 0, 0);
+            UpdateDisplay(' ', 0, 0);
 
             ssd1306_draw_string(&ssd, "LED VERDE ON", 8, 46); // Desenha uma string
             ssd1306_send_data(&ssd);                          // Atualiza o display
@@ -132,7 +135,7 @@ void LedInformationMessage(uint gpio, bool ledStatus)
         else
         {
             printf("Led Verde desligado");
-            UpdateDisplay(ssd1306_draw_char, ' ', 0, 0);
+            UpdateDisplay(' ', 0, 0);
 
             ssd1306_draw_string(&ssd, "LED VERDE OFF", 8, 46); // Desenha uma string
             ssd1306_send_data(&ssd);                           // Atualiza o display
@@ -143,7 +146,7 @@ void LedInformationMessage(uint gpio, bool ledStatus)
         if (ledStatus)
         {
             printf("Led Azul ligado");
-            UpdateDisplay(ssd1306_draw_char, ' ', 0, 0);
+            UpdateDisplay(' ', 0, 0);
 
             ssd1306_draw_string(&ssd, "LED AZUL ON", 8, 46); // Desenha uma string
             ssd1306_send_data(&ssd);                         // Atualiza o display
@@ -151,9 +154,9 @@ void LedInformationMessage(uint gpio, bool ledStatus)
         else
         {
             printf("Led Azul desligado");
-            UpdateDisplay(ssd1306_draw_char, ' ', 0, 0);
+            UpdateDisplay(' ', 0, 0);
 
-            ssd1306_draw_string(&ssd, "LED AZUL OFf", 8, 46); // Desenha uma string
+            ssd1306_draw_string(&ssd, "LED AZUL OFF", 8, 46); // Desenha uma string
             ssd1306_send_data(&ssd);                         // Atualiza o display
         }
     }
@@ -166,7 +169,7 @@ void UpdateDrawing(int number)
     Draw(drawing, valorLed, pio, color);
 }
 
-void UpdateDisplay(void (*ssd1306_draw_char)(ssd1306_t *, char, uint8_t, uint8_t), char c, uint8_t x, uint8_t y)
+void UpdateDisplay(char c, uint8_t x, uint8_t y)
 {
     // Limpa o display. O display inicia com todos os pixels apagados.
     ssd1306_fill(&ssd, false);
@@ -174,22 +177,19 @@ void UpdateDisplay(void (*ssd1306_draw_char)(ssd1306_t *, char, uint8_t, uint8_t
 
     ssd1306_rect(&ssd, 3, 3, 122, 58, true, false);     // Desenha um retângulo
     ssd1306_draw_string(&ssd, "CEPEDI   TIC37", 8, 10); // Desenha uma string
-    ssd1306_draw_char(&ssd, c, x, y);
+    ssd1306_draw_char(&ssd, c, x, y); // Exibe caractere recebido
     ssd1306_send_data(&ssd); // Atualiza o display
 }
-
-#include <stdio.h>
 
 void HandleInput(char c)
 {
     if (c >= '0' && c <= '9') // Verifica se é um número de 0 a 9
     {
-        UpdateDisplay(ssd1306_draw_char, c, 8, 28);
-        int num = c - '0';
-        UpdateDrawing(num);
+        UpdateDisplay(c, 8, 28);
+        UpdateDrawing(c - '0'); // Converte caractere para número e atualiza a matriz
     }else
     {
-        UpdateDisplay(ssd1306_draw_char, c, 8, 28);
+        UpdateDisplay(c, 8, 28); // Apenas exibe no display OLED
     }
     
 }
