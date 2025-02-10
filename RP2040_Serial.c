@@ -126,7 +126,7 @@ void LedInformationMessage(uint gpio, bool ledStatus)
     {
         if (ledStatus)
         {
-            printf("Led Verde ligado");
+            printf("Led Verde ligado\n");
             UpdateDisplay(' ', 0, 0);
 
             ssd1306_draw_string(&ssd, "LED VERDE ON", 8, 46); // Desenha uma string
@@ -134,7 +134,7 @@ void LedInformationMessage(uint gpio, bool ledStatus)
         }
         else
         {
-            printf("Led Verde desligado");
+            printf("Led Verde desligado\n");
             UpdateDisplay(' ', 0, 0);
 
             ssd1306_draw_string(&ssd, "LED VERDE OFF", 8, 46); // Desenha uma string
@@ -145,7 +145,7 @@ void LedInformationMessage(uint gpio, bool ledStatus)
     {
         if (ledStatus)
         {
-            printf("Led Azul ligado");
+            printf("Led Azul ligado\n");
             UpdateDisplay(' ', 0, 0);
 
             ssd1306_draw_string(&ssd, "LED AZUL ON", 8, 46); // Desenha uma string
@@ -153,7 +153,7 @@ void LedInformationMessage(uint gpio, bool ledStatus)
         }
         else
         {
-            printf("Led Azul desligado");
+            printf("Led Azul desligado\n");
             UpdateDisplay(' ', 0, 0);
 
             ssd1306_draw_string(&ssd, "LED AZUL OFF", 8, 46); // Desenha uma string
